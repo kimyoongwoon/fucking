@@ -1,8 +1,8 @@
 // graph_UI/graph_option/data_filter/FilterControl.js
-// 개별 필터 컨트롤 UI
+// 개별 필터 컨트롤 UI - 안전한 오류 처리 버전
 
 import { prepareDataForVisualization, getAxisRange } from '../../graph_generator/utils/DataUtils.js';
-import { graphConfigs,originalData  } from '../../../graph_complete.js';
+import { graphConfigs, originalData } from '../../../graph_complete.js';
 
 export function createFilterControl(axis, graphId, onFilterChange) {
   const control = document.createElement('div');
@@ -62,19 +62,62 @@ export function createFilterControl(axis, graphId, onFilterChange) {
   valueDisplay.style.cssText = 'min-width: 60px; text-align: center; font-size: 11px; color: #666;';
   valueDisplay.textContent = '계산 중...';
   
-  // Get data range
+  // ✅ 수정: 안전한 데이터 범위 계산
   setTimeout(() => {
-    const config = graphConfigs[graphId];
-    const preparedData = prepareDataForVisualization(
-      config.dataset,
-      originalData,
-      {},
-      null
-    );
-    
-    const range = getAxisRange(axis.name, preparedData);
-    const initialValue = (range.min + range.max) / 2;
-    
+    try {
+      const config = graphConfigs[graphId] || (window.graphConfigs && window.graphConfigs[graphId]);
+      const dataSource = originalData || window.originalData;
+      
+      if (!config || !dataSource) {
+        console.warn(`FilterControl: Missing config or data for ${graphId}`);
+        setDefaultRange();
+        return;
+      }
+      
+      // 현재 필터 없이 데이터를 준비
+      const preparedData = prepareDataForVisualization(
+        config.dataset,
+        dataSource,
+        {}, // 필터 없음
+        null // 윈도우 없음
+      );
+      
+      if (preparedData.length === 0) {
+        console.warn(`FilterControl: No prepared data for axis ${axis.name}`);
+        setDefaultRange();
+        return;
+      }
+      
+      // ✅ 추가: 축 데이터 존재 여부 확인
+      const hasAxisData = preparedData.some(d => d[axis.name] !== undefined && d[axis.name] !== null);
+      if (!hasAxisData) {
+        console.warn(`FilterControl: No data found for axis ${axis.name}`);
+        console.warn(`Available axes:`, preparedData.length > 0 ? Object.keys(preparedData[0]) : 'no data');
+        setDefaultRange();
+        return;
+      }
+      
+      const range = getAxisRange(axis.name, preparedData);
+      const initialValue = (range.min + range.max) / 2;
+      
+      setupSlider(range, initialValue);
+      
+    } catch (error) {
+      console.error(`FilterControl: Error calculating range for ${axis.name}:`, error);
+      setDefaultRange();
+    }
+  }, 0);
+  
+  // ✅ 추가: 기본 범위 설정 함수
+  function setDefaultRange() {
+    const range = { min: 0, max: 100 };
+    const initialValue = 50;
+    setupSlider(range, initialValue);
+    console.log(`FilterControl: Using default range for ${axis.name}`);
+  }
+  
+  // ✅ 추가: 슬라이더 설정 함수
+  function setupSlider(range, initialValue) {
     // Setup slider
     slider.min = range.min;
     slider.max = range.max;
@@ -91,7 +134,9 @@ export function createFilterControl(axis, graphId, onFilterChange) {
     filterState.value = initialValue;
     filterState.min = range.min;
     filterState.max = range.max;
-  }, 0);
+    
+    console.log(`FilterControl: ${axis.name} range set to [${range.min}, ${range.max}]`);
+  }
   
   // Slider change event
   slider.oninput = () => {
