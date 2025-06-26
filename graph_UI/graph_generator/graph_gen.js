@@ -1,9 +1,9 @@
 // graph_UI/graph_generator/graph_gen.js
-// 그래프 생성 메인 함수
+// 그래프 생성 메인 함수 - 수정된 버전
 
 import { createDatasetCard } from './DatasetCard.js';
 import { prepareDataForVisualization } from './utils/DataUtils.js';
-import { graphInstances, graphConfigs } from '../../graph_complete.js';
+import { graphInstances, graphConfigs, originalData } from '../../graph_complete.js'; // ✅ originalData 직접 import
 
 let graphCounter = 0;
 
@@ -127,13 +127,15 @@ export function createChart(graphId, vizTypeIndex) {
   }
   
   try {
-    // Prepare data for visualization
+    // ✅ 수정: originalData를 직접 참조
     const preparedData = prepareDataForVisualization(
       dataset,
-      window.originalData,
+      originalData,  // ✅ window.originalData 대신 originalData 직접 사용
       config.filters,
       config.window
     );
+    
+    console.log(`Chart ${graphId}: prepared ${preparedData.length} data points`); // 디버깅용
     
     // Import and create visualization
     import('../../visualizations/chart_factory.js').then(module => {
@@ -153,6 +155,8 @@ export function createChart(graphId, vizTypeIndex) {
       
       graphInstances[graphId] = new Chart(canvas, chartConfig);
       config.currentVizIndex = vizTypeIndex;
+      
+      console.log(`Chart ${graphId} created successfully with ${preparedData.length} points`); // 디버깅용
     });
     
   } catch (error) {
@@ -164,6 +168,7 @@ export function createChart(graphId, vizTypeIndex) {
 // Update chart when options change
 export function updateChart(graphId) {
   const config = graphConfigs[graphId];
+  console.log(`Updating chart ${graphId} with vizIndex ${config.currentVizIndex}`); // 디버깅용
   createChart(graphId, config.currentVizIndex);
 }
 

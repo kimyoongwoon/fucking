@@ -1,5 +1,5 @@
 // graph_UI/graph_option/graph_option_manager.js
-// 그래프 옵션 통합 관리
+// 그래프 옵션 통합 관리 - 수정된 버전
 
 import { createVisualizationTypeOption } from './visualization_type/VisualizationTypeOption.js';
 import { createDataFilterOption } from './data_filter/DataFilterOption.js';
@@ -7,7 +7,7 @@ import { createWindowOption } from './window/WindowOption.js';
 import { createSizeScalingOption } from './scaling/size/SizeScalingOption.js';
 import { createColorScalingOption } from './scaling/color/ColorScalingOption.js';
 import { updateChart } from '../graph_generator/graph_gen.js';
-import { graphConfigs } from '../../graph_complete.js';
+import { graphConfigs, originalData } from '../../graph_complete.js'; // ✅ originalData import 추가
 import { getAxisRange, findOriginalAxisInfo } from '../graph_generator/utils/DataUtils.js';
 
 class GraphOptionManager {
@@ -24,9 +24,14 @@ class GraphOptionManager {
     const config = graphConfigs[graphId];
     const currentVizType = dataset.visualizationTypes[config.currentVizIndex];
     
+    console.log(`Initializing options for ${graphId}, vizType: ${currentVizType.type}, dataset:`, dataset); // ✅ 디버깅 로그
+    
     // Get used axes for current visualization
     const usedAxes = this.getUsedAxesForVisualization(dataset, currentVizType);
     const unusedAxes = this.getUnusedAxes(dataset, originalData);
+    
+    console.log(`Used axes:`, usedAxes); // ✅ 디버깅 로그
+    console.log(`Unused axes:`, unusedAxes); // ✅ 디버깅 로그
     
     // 0. Visualization Type Option (if applicable)
     const vizTypeOption = createVisualizationTypeOption(
@@ -87,36 +92,52 @@ class GraphOptionManager {
     this.initializeOptions(graphId, dataset, this.originalData);
   }
   
-  // Get axes used by current visualization
+  // ✅ 수정: Get axes used by current visualization
   getUsedAxesForVisualization(dataset, vizType) {
+    // 시각화 타입별 사용 축 매핑
     const axisMap = {
-      'line1d': ['x'],
-      'category': [],
-      'size': ['x'],
-      'color': ['x'],
-      'scatter': ['x', 'y'],
-      'bar_size': ['x'],
-      'bar_color': ['x'],
-      'bar': ['x', 'y'],
-      'size_color': ['x'],
-      'scatter_size': ['x', 'y'],
-      'scatter_color': ['x', 'y'],
-      'grouped_bar_size': ['x', 'y'],
-      'grouped_bar': ['x', 'y'],
-      'grouped_bar_color': ['x', 'y'],
-      'scatter_size_color': ['x', 'y'],
-      'grouped_scatter_size_color': ['x', 'y']
+      // 1D
+      'line1d': ['position0'], // 첫 번째 축만 위치용으로 사용
+      'category': [], // 카테고리는 위치축 없음 (string 축 사용)
+      
+      // 2D  
+      'size': ['position0'], // x축만 위치용, 나머지는 크기용
+      'color': ['position0'], // x축만 위치용, 나머지는 색상용
+      'scatter': ['position0', 'position1'], // x, y 모두 위치용
+      
+      // 2D String
+      'bar_size': ['position0'], // 숫자 축만 위치용 (string 축 제외)
+      'bar_color': ['position0'], // 숫자 축만 위치용
+      'bar': ['position0'], // 첫 번째 숫자 축만 위치용
+      
+      // 3D
+      'size_color': ['position0'], // x축만 위치용
+      'scatter_size': ['position0', 'position1'], // x, y 위치용
+      'scatter_color': ['position0', 'position1'], // x, y 위치용
+      
+      // 3D String
+      'grouped_bar_size': ['position0'], // 숫자 축들 중 첫 번째만 위치용
+      'grouped_bar': ['position0'], // 첫 번째 숫자 축만 위치용
+      'grouped_bar_color': ['position0'], // 첫 번째 숫자 축만 위치용
+      
+      // 4D
+      'scatter_size_color': ['position0', 'position1'], // x, y 위치용
+      
+      // 4D String
+      'grouped_scatter_size_color': ['position0', 'position1'] // 숫자 축들 중 처음 두 개 위치용
     };
     
     const roles = axisMap[vizType.type] || [];
     const usedAxes = [];
     
-    if (roles.includes('x') && dataset.axes[0] && dataset.axes[0].type !== 'string') {
-      usedAxes.push(dataset.axes[0]);
-    }
-    if (roles.includes('y') && dataset.axes[1] && dataset.axes[1].type !== 'string') {
-      usedAxes.push(dataset.axes[1]);
-    }
+    // ✅ 수정: 숫자 축들만 필터링해서 순서대로 매핑
+    const numericAxes = dataset.axes.filter(axis => axis.type !== 'string');
+    
+    roles.forEach((role, index) => {
+      if (numericAxes[index]) {
+        usedAxes.push(numericAxes[index]);
+      }
+    });
     
     return usedAxes;
   }

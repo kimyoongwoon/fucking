@@ -1,11 +1,14 @@
 // graph_UI/graph_generator/utils/DataUtils.js
-// 데이터 가공 및 유틸리티 함수
+// 데이터 가공 및 유틸리티 함수 - 수정된 버전
 
 // Prepare data for visualization by extracting selected axes
 export function prepareDataForVisualization(dataset, originalData, filters = {}, window = null) {
   if (!originalData || !originalData.data_value) {
+    console.warn('prepareDataForVisualization: No original data provided'); // ✅ 디버깅 로그
     return [];
   }
+  
+  console.log(`Preparing data: ${originalData.data_value.length} original points, ${Object.keys(filters).length} filters, window: ${window ? 'yes' : 'no'}`); // ✅ 디버깅 로그
   
   // Extract data for selected axes
   const preparedData = originalData.data_value.map((point, index) => {
@@ -44,12 +47,16 @@ export function prepareDataForVisualization(dataset, originalData, filters = {},
     return dataPoint;
   });
   
+  console.log(`After axis extraction: ${preparedData.length} points`); // ✅ 디버깅 로그
+  
   // Apply filters
   let filteredData = applyFilters(preparedData, filters, originalData);
+  console.log(`After filters: ${filteredData.length} points`); // ✅ 디버깅 로그
   
   // Apply window if exists
   if (window) {
     filteredData = applyWindow(filteredData, window, dataset);
+    console.log(`After window: ${filteredData.length} points`); // ✅ 디버깅 로그
   }
   
   return filteredData;
@@ -87,15 +94,18 @@ function applyFilters(data, filters, originalData) {
 function applyWindow(data, window, dataset) {
   if (!window || !window.axes) return data;
   
-  return data.filter(dataPoint => {
+  console.log('Applying window constraints:', window.axes); // ✅ 디버깅 로그
+  
+  const filteredData = data.filter(dataPoint => {
     for (const axisName in window.axes) {
       const axisWindow = window.axes[axisName];
       const value = dataPoint[axisName];
 
-      // The UI window range includes both start and end values.
       if (value !== undefined) {
         const start = parseFloat(axisWindow.startValue);
         const end = parseFloat(axisWindow.endValue);
+        
+        // ✅ 수정: 더 명확한 범위 체크
         if (value < start || value > end) {
           return false;
         }
@@ -104,6 +114,15 @@ function applyWindow(data, window, dataset) {
 
     return true;
   });
+  
+  // ✅ 윈도우 필터링 결과 로그
+  Object.entries(window.axes).forEach(([axisName, axisWindow]) => {
+    const axisValues = data.map(d => d[axisName]).filter(v => v !== undefined);
+    const filteredValues = filteredData.map(d => d[axisName]).filter(v => v !== undefined);
+    console.log(`Window ${axisName}: [${axisWindow.startValue}, ${axisWindow.endValue}] - ${axisValues.length} → ${filteredValues.length} points`);
+  });
+  
+  return filteredData;
 }
 
 // Get axis value from data point
@@ -183,13 +202,18 @@ export function getAxisRange(axisName, data) {
     .filter(v => v !== undefined && !isNaN(v));
   
   if (values.length === 0) {
+    console.warn(`No valid values found for axis ${axisName}`); // ✅ 디버깅 로그
     return { min: 0, max: 100 };
   }
   
-  return {
+  const range = {
     min: Math.min(...values),
     max: Math.max(...values)
   };
+  
+  console.log(`Axis ${axisName} range: [${range.min}, ${range.max}] from ${values.length} values`); // ✅ 디버깅 로그
+  
+  return range;
 }
 
 // Get original axis info from basic_data

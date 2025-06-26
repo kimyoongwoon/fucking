@@ -1,9 +1,8 @@
 // graph_UI/graph_generator/DatasetCard.js
-// 데이터셋 카드 생성 (삭제 버튼 포함)
+// 데이터셋 카드 생성 (삭제 버튼 포함) - 수정된 버전
 
 import { createChart } from './graph_gen.js';
 import { removeGraph } from '../../graph_complete.js';
-import { graphOptionManager } from '../graph_option/graph_option_manager.js';
 
 export function createDatasetCard(dataset, graphId, originalData) {
   const card = document.createElement('div');
@@ -53,6 +52,9 @@ export function createDatasetCard(dataset, graphId, originalData) {
   chartContainer.className = 'chart-container';
   const canvas = document.createElement('canvas');
   canvas.id = `chart-${graphId}`;
+  // ✅ 캔버스 스타일 명시적 설정
+  canvas.style.width = '100%';
+  canvas.style.height = '300px';
   chartContainer.appendChild(canvas);
   card.appendChild(chartContainer);
   
@@ -65,10 +67,22 @@ export function createDatasetCard(dataset, graphId, originalData) {
   `;
   card.appendChild(info);
   
-  // Initialize options
+  // ✅ 수정: 옵션 초기화를 더 안전하게 처리
   setTimeout(() => {
-    graphOptionManager.initializeOptions(graphId, dataset, originalData);
-  }, 50);
+    try {
+      // 동적 import로 옵션 관리자 로드
+      import('../graph_option/graph_option_manager.js').then(module => {
+        const { graphOptionManager } = module;
+        graphOptionManager.initializeOptions(graphId, dataset, originalData);
+        console.log(`⚙️ Options initialized for ${graphId}`);
+      }).catch(error => {
+        console.warn(`⚠️ Failed to load option manager for ${graphId}:`, error);
+        // 옵션 관리자 로딩 실패해도 기본 기능은 작동하도록
+      });
+    } catch (error) {
+      console.warn(`⚠️ Error initializing options for ${graphId}:`, error);
+    }
+  }, 100);
   
   return card;
 }
@@ -82,9 +96,22 @@ function switchVisualization(graphId, vizTypeIndex) {
     btn.classList.toggle('active', idx === vizTypeIndex);
   });
   
+  console.log(`🔄 Switching ${graphId} to visualization ${vizTypeIndex}`);
+  
   // Update visualization
   createChart(graphId, vizTypeIndex);
   
-  // Update options if needed
-  graphOptionManager.onVisualizationChange(graphId, vizTypeIndex);
+  // ✅ 수정: 옵션 업데이트를 더 안전하게 처리
+  setTimeout(() => {
+    try {
+      import('../graph_option/graph_option_manager.js').then(module => {
+        const { graphOptionManager } = module;
+        graphOptionManager.onVisualizationChange(graphId, vizTypeIndex);
+      }).catch(error => {
+        console.warn(`⚠️ Failed to update options for ${graphId}:`, error);
+      });
+    } catch (error) {
+      console.warn(`⚠️ Error updating options for ${graphId}:`, error);
+    }
+  }, 50);
 }

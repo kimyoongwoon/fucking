@@ -2,7 +2,7 @@
 // 개별 필터 컨트롤 UI
 
 import { prepareDataForVisualization, getAxisRange } from '../../graph_generator/utils/DataUtils.js';
-import { graphConfigs } from '../../../graph_complete.js';
+import { graphConfigs,originalData  } from '../../../graph_complete.js';
 
 export function createFilterControl(axis, graphId, onFilterChange) {
   const control = document.createElement('div');
@@ -67,7 +67,7 @@ export function createFilterControl(axis, graphId, onFilterChange) {
     const config = graphConfigs[graphId];
     const preparedData = prepareDataForVisualization(
       config.dataset,
-      window.originalData,
+      originalData,
       {},
       null
     );
