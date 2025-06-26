@@ -91,13 +91,17 @@ function applyWindow(data, window, dataset) {
     for (const axisName in window.axes) {
       const axisWindow = window.axes[axisName];
       const value = dataPoint[axisName];
-      
-      if (value !== undefined && 
-          (value < axisWindow.startValue || value >= axisWindow.endValue)) {
-        return false;
+
+      // The UI window range includes both start and end values.
+      if (value !== undefined) {
+        const start = parseFloat(axisWindow.startValue);
+        const end = parseFloat(axisWindow.endValue);
+        if (value < start || value > end) {
+          return false;
+        }
       }
     }
-    
+
     return true;
   });
 }

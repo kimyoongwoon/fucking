@@ -31,8 +31,8 @@ export function createWindowOption(graphId, usedAxes, originalData, onWindowChan
     // Initialize axis window state
     windowState.axes[axis.name] = {
       startValue: min,
-      endValue: min + 3, // Initial window size of 3
-      windowSize: 3,
+      endValue: min + 6, // Initial window size doubled
+      windowSize: 6,
       stepSize: interval,
       interval: interval,
       min: min,
@@ -48,6 +48,9 @@ export function createWindowOption(graphId, usedAxes, originalData, onWindowChan
     
     section.appendChild(control);
   });
+
+  // Apply initial window state
+  onWindowChange(windowState);
   
   return section;
 }
