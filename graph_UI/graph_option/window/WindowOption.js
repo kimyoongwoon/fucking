@@ -48,6 +48,9 @@ export function createWindowOption(graphId, usedAxes, originalData, onWindowChan
     
     section.appendChild(control);
   });
+
+  // Apply initial window state
+  onWindowChange(windowState);
   
   return section;
 }
